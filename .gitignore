@@ -1,0 +1,35 @@
+# Python virtual environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Depth Anything model weights
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+
+# Generated depth data
+*.npy
+
+# Large imagery / geospatial data
+*.tif
+*.tiff
+*.jp2
+*.img
+*.dem
+
+# Generated output
+output/
+results/
+
+# IDE settings
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
