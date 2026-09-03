@@ -1,20 +1,22 @@
+import os
 import rasterio
 from rasterio.warp import reproject, Resampling
-import glob
 import numpy as np
 
-# Exact DEM path
-dem_file = r"C:\Users\vimal\DepthWizard\Depth-Anything-V2\data\dem\Copernicus_DSM_30_N25_00_E081_00_DEM.tif"
+# Relative DEM and imagery paths
+dem_file = os.path.join("data", "dem", "Copernicus_DSM_30_N25_00_E081_00_DEM.tif")
+imagery_file = os.path.join(
+    "data",
+    "imagery",
+    "2026-09-03-00_00_2026-09-03-23_59_Sentinel-2_L2A_True_color.tiff"
+)
+output_file = os.path.join("data", "dem", "aligned_to_imagery.tif")
 
-# Automatically find Sentinel-2 TIFF
-imagery_files = glob.glob(r".\data\imagery\*")
+if not os.path.exists(imagery_file):
+    raise FileNotFoundError(f"Target imagery file not found: {imagery_file}")
 
-if not imagery_files:
-    raise FileNotFoundError("No imagery file found in data\\imagery")
-
-imagery_file = imagery_files[0]
-
-output_file = r".\data\dem\aligned_to_imagery.tif"
+if not os.path.exists(dem_file):
+    raise FileNotFoundError(f"DEM file not found: {dem_file}")
 
 print("Imagery:", imagery_file)
 print("DEM:", dem_file)
@@ -28,6 +30,8 @@ with rasterio.open(imagery_file) as img:
             dtype=np.float32
         )
 
+        src_nodata = dem.nodata if dem.nodata is not None else -9999
+
         reproject(
             source=rasterio.band(dem, 1),
             destination=aligned_dem,
@@ -35,7 +39,7 @@ with rasterio.open(imagery_file) as img:
             src_crs=dem.crs,
             dst_transform=img.transform,
             dst_crs=img.crs,
-            src_nodata=dem.nodata,
+            src_nodata=src_nodata,
             dst_nodata=-9999,
             resampling=Resampling.bilinear
         )
@@ -54,4 +58,4 @@ with rasterio.open(imagery_file) as img:
 
         print("Aligned DEM created successfully.")
         print("Output:", output_file)
-        print("Grid size:", img.width, "x", img.height)
+        print("Grid size:", img.width, "x", img.height)

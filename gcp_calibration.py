@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import rasterio
 
@@ -5,198 +6,134 @@ import rasterio
 # FILE PATHS
 # ============================================
 
-depth_path = "results/depth_maps/test_depth.npy"
-dem_path = "data/dem/Copernicus_DSM_30_N25_00_E081_00_DEM.tif"
-
-output_path = "results/depth_maps/calibrated_elevation.npy"
-
-
-# ============================================
-# LOAD DEPTH MAP
-# ============================================
-
-print("Loading depth map...")
-
-depth = np.load(depth_path)
-
-print("Depth map loaded successfully.")
-print("Shape:", depth.shape)
-print("Minimum depth:", float(depth.min()))
-print("Maximum depth:", float(depth.max()))
-print("Mean depth:", float(depth.mean()))
+depth_path = os.path.join("results", "depth_maps", "test_depth.npy")
+dem_path = os.path.join("data", "dem", "Copernicus_DSM_30_N25_00_E081_00_DEM.tif")
+output_path = os.path.join("results", "depth_maps", "calibrated_elevation.npy")
 
 
-# ============================================
-# GROUND CONTROL POINTS
-#
-# Format:
-# (image_x, image_y, latitude, longitude)
-# ============================================
+def calibrate_depth_with_gcps(depth_values, elevation_values):
+    """
+    Calculates linear calibration parameters from corresponding relative depth
+    and reference elevation values.
+    
+    Elevation = Scale * RelativeDepth + Offset
+    """
+    depth_values = np.array(depth_values, dtype=np.float64)
+    elevation_values = np.array(elevation_values, dtype=np.float64)
 
-gcp_points = [
-    (612, 602, 25.436673, 81.889116),
-    (814, 348, 25.436750, 81.889116),
-    (135, 430, 25.436779, 81.889213),
-    (148, 842, 25.436789, 81.889106),
-    (1535, 578, 25.436721, 81.889234),
-]
+    num_gcps = len(depth_values)
 
+    if num_gcps < 3:
+        print("ERROR: Calibration requires at least 3 valid GCP pairs.")
+        print("Calibration cannot currently be performed.")
+        return None
 
-# ============================================
-# READ DEM AND EXTRACT ELEVATIONS
-# ============================================
+    if np.allclose(depth_values, depth_values[0]):
+        print("ERROR: All relative depth values are identical.")
+        print("Calibration cannot currently be performed.")
+        return None
 
-print("\nReading Copernicus DEM...")
+    # Fit linear calibration model: Elevation = Scale * RelativeDepth + Offset
+    scale, offset = np.polyfit(depth_values, elevation_values, 1)
 
-depth_values = []
-elevation_values = []
+    # Calculate RMSE
+    predicted_elevations = scale * depth_values + offset
+    errors = predicted_elevations - elevation_values
+    rmse = float(np.sqrt(np.mean(errors ** 2)))
 
-with rasterio.open(dem_path) as dem:
+    print("\n============================================")
+    print("MEMBER 2 CALIBRATION REPORT")
+    print("============================================")
+    print(f"Number of GCPs used : {num_gcps}")
+    print(f"Scale               : {scale:.6f}")
+    print(f"Offset              : {offset:.6f}")
+    print(f"Equation            : Elevation = {scale:.6f} * RelativeDepth + ({offset:.6f})")
+    print(f"Calibration RMSE    : {rmse:.3f} meters")
 
-    print("DEM CRS:", dem.crs)
-
-    # Read DEM once instead of reading it for every GCP
-    dem_array = dem.read(1)
-
-    for i, (x, y, lat, lon) in enumerate(gcp_points, start=1):
-
-        # Check image coordinates
-        if not (0 <= x < depth.shape[1] and 0 <= y < depth.shape[0]):
-            print(
-                f"GCP {i}: ERROR - pixel ({x}, {y}) "
-                "is outside the image."
-            )
-            continue
-
-        # Get relative depth value at image pixel
-        relative_depth = float(depth[y, x])
-
-        # Convert geographic coordinates to DEM pixel
-        row, col = dem.index(lon, lat)
-
-        # Check DEM coordinates
-        if not (
-            0 <= row < dem_array.shape[0]
-            and 0 <= col < dem_array.shape[1]
-        ):
-            print(
-                f"GCP {i}: ERROR - coordinate "
-                f"({lat}, {lon}) is outside the DEM."
-            )
-            continue
-
-        # Get elevation from DEM
-        elevation = float(dem_array[row, col])
-
-        # Store values
-        depth_values.append(relative_depth)
-        elevation_values.append(elevation)
-
-        print(
-            f"GCP {i}: "
-            f"Pixel=({x}, {y}) | "
-            f"Lat={lat} | "
-            f"Lon={lon} | "
-            f"Depth={relative_depth:.6f} | "
-            f"Elevation={elevation:.3f} m"
-        )
+    return {
+        "scale": scale,
+        "offset": offset,
+        "rmse": rmse,
+        "num_gcps": num_gcps
+    }
 
 
-# ============================================
-# CHECK GCP DATA
-# ============================================
+def main(gcp_points=None):
+    """
+    Main calibration module. Accepts a list of user-provided GCP tuples:
+    gcp_points = [(image_x, image_y, latitude, longitude), ...]
+    """
+    print("============================================")
+    print("MEMBER 2 GEOSPATIAL CALIBRATION MODULE")
+    print("============================================")
 
-depth_values = np.array(depth_values)
-elevation_values = np.array(elevation_values)
+    if not os.path.exists(depth_path):
+        print(f"ERROR: Depth map file not found: {depth_path}")
+        print("Calibration cannot currently be performed.")
+        return
 
-print("\nValid GCPs:", len(depth_values))
+    print("Loading relative depth map...")
+    depth = np.load(depth_path)
+    print(f"Depth map shape: {depth.shape}")
+    print(f"Depth min: {depth.min():.4f}, max: {depth.max():.4f}, mean: {depth.mean():.4f}")
 
-if len(depth_values) < 3:
-    print("ERROR: At least 3 valid GCPs are required.")
-    raise SystemExit
+    if not gcp_points:
+        print("\n--------------------------------------------")
+        print("NOTICE: No user-provided GCP data available.")
+        print("Calibration cannot currently be performed.")
+        print("--------------------------------------------")
+        return
 
-if np.allclose(depth_values, depth_values[0]):
-    print(
-        "ERROR: All GCP depth values are almost identical. "
-        "Calibration cannot be performed reliably."
-    )
-    raise SystemExit
+    depth_values = []
+    elevation_values = []
 
+    if not os.path.exists(dem_path):
+        print(f"ERROR: DEM file not found: {dem_path}")
+        print("Calibration cannot currently be performed.")
+        return
 
-# ============================================
-# LINEAR CALIBRATION
-#
-# Elevation = Scale × RelativeDepth + Offset
-# ============================================
+    with rasterio.open(dem_path) as dem:
+        dem_array = dem.read(1)
 
-scale, offset = np.polyfit(
-    depth_values,
-    elevation_values,
-    1
-)
+        for i, (x, y, lat, lon) in enumerate(gcp_points, start=1):
+            if not (0 <= x < depth.shape[1] and 0 <= y < depth.shape[0]):
+                print(f"GCP {i}: Pixel ({x}, {y}) outside image bounds.")
+                continue
 
-print("\n============================================")
-print("CALIBRATION RESULT")
-print("============================================")
+            row, col = dem.index(lon, lat)
+            if not (0 <= row < dem_array.shape[0] and 0 <= col < dem_array.shape[1]):
+                print(f"GCP {i}: Coordinate ({lat}, {lon}) outside DEM bounds.")
+                continue
 
-print("Scale :", scale)
-print("Offset:", offset)
+            rel_depth = float(depth[y, x])
+            elev = float(dem_array[row, col])
 
-print(
-    "\nEquation:"
-    "\nElevation = "
-    f"{scale:.6f} × RelativeDepth + "
-    f"{offset:.6f}"
-)
+            depth_values.append(rel_depth)
+            elevation_values.append(elev)
 
+            print(f"GCP {i}: Pixel=({x}, {y}) | Lat={lat:.6f}, Lon={lon:.6f} | Depth={rel_depth:.4f} | Elev={elev:.2f}m")
 
-# ============================================
-# CALCULATE GCP FIT ERROR
-# ============================================
+    result = calibrate_depth_with_gcps(depth_values, elevation_values)
 
-predicted_elevations = (
-    scale * depth_values + offset
-)
+    if result is None:
+        return
 
-errors = (
-    predicted_elevations - elevation_values
-)
+    scale = result["scale"]
+    offset = result["offset"]
 
-rmse = np.sqrt(
-    np.mean(errors ** 2)
-)
+    # Generate calibrated elevation map
+    print("\nGenerating calibrated elevation map...")
+    calibrated_elevation = scale * depth + offset
 
-print("\nGCP calibration RMSE:", f"{rmse:.3f}", "meters")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    np.save(output_path, calibrated_elevation)
 
-
-# ============================================
-# GENERATE CALIBRATED ELEVATION MAP
-# ============================================
-
-print("\nGenerating calibrated elevation map...")
-
-elevation_map = (
-    scale * depth + offset
-)
+    print(f"Calibrated elevation map saved to: {output_path}")
+    print(f"Elevation Min: {calibrated_elevation.min():.2f}m | Max: {calibrated_elevation.max():.2f}m | Mean: {calibrated_elevation.mean():.2f}m")
 
 
-# ============================================
-# SAVE RESULT
-# ============================================
-
-np.save(
-    output_path,
-    elevation_map
-)
-
-print("\n============================================")
-print("SUCCESS")
-print("============================================")
-
-print("Calibrated elevation map saved to:")
-print(output_path)
-
-print("\nElevation map statistics:")
-print("Minimum:", float(elevation_map.min()), "m")
-print("Maximum:", float(elevation_map.max()), "m")
-print("Mean   :", float(elevation_map.mean()), "m")
+if __name__ == "__main__":
+    # By default, no hardcoded GCP points are assumed.
+    # Users can provide gcp_points to run calibration:
+    # example: main(gcp_points=[(x1, y1, lat1, lon1), ...])
+    main(gcp_points=None)
