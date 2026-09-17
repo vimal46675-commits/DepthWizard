@@ -1,7 +1,7 @@
 from PIL import Image
 import matplotlib.pyplot as plt
 
-image_path = "input/test.jpg"
+image_path = "data/imagery/sentinel_rgb_2048.png"
 
 img = Image.open(image_path)
 

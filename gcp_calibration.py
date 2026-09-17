@@ -6,7 +6,7 @@ import rasterio
 # FILE PATHS
 # ============================================
 
-depth_path = os.path.join("results", "depth_maps", "test_depth.npy")
+depth_path = os.path.join("results", "depth_maps", "sentinel_rgb_2048_depth.npy")
 dem_path = os.path.join("data", "dem", "Copernicus_DSM_30_N25_00_E081_00_DEM.tif")
 output_path = os.path.join("results", "depth_maps", "calibrated_elevation.npy")
 
@@ -136,4 +136,13 @@ if __name__ == "__main__":
     # By default, no hardcoded GCP points are assumed.
     # Users can provide gcp_points to run calibration:
     # example: main(gcp_points=[(x1, y1, lat1, lon1), ...])
-    main(gcp_points=None)
+    gcp_points = [
+        (159, 687, 25.887292, 81.084903),
+        (29, 1588, 25.451064, 81.015268),
+        (314, 2004, 25.249586, 81.166973),
+        (1250, 1998, 25.251072, 81.665358),
+        (857, 559, 25.948536, 81.458791),
+        (1549, 817, 25.822016, 81.828443),
+    ]
+
+    main(gcp_points=gcp_points)
