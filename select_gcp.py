@@ -7,17 +7,17 @@ img = Image.open(image_path)
 
 print("Image size:", img.size)
 print()
-print("Select 8 clearly identifiable points.")
+print("Select 12 clearly identifiable points.")
 print("Try to spread the points across the whole image.")
-print("After selecting all 8 points, close the image window.")
+print("After selecting all 12 points, close the image window.")
 
 plt.figure(figsize=(16, 9))
 plt.imshow(img)
-plt.title("Select 8 GCP Points")
+plt.title("Select 12 GCP Points")
 plt.xlabel("X pixel")
 plt.ylabel("Y pixel")
 
-points = plt.ginput(n=8, timeout=0)
+points = plt.ginput(n=12, timeout=0)
 
 plt.close()
 

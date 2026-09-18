@@ -2,16 +2,20 @@ import rasterio
 
 DEM_PATH = r"data\dem\Copernicus_DSM_30_N25_00_E081_00_DEM.tif"
 
-# GCP coordinates obtained from Sentinel image
+# New GCP coordinates from the latest 12 selected image points
 gcp_points = [
-    (25.887292, 81.084903),
-    (25.451064, 81.015268),
-    (25.249586, 81.166973),
-    (25.251072, 81.665358),
-    (25.252070, 82.000684),
-    (25.948536, 81.458791),
-    (25.822016, 81.828443),
-    (25.670270, 82.008433),
+    (25.894066, 81.081713),
+    (25.855137, 81.439668),
+    (25.832551, 81.657800),
+    (25.406091, 81.022222),
+    (25.316451, 81.130403),
+    (25.265718, 81.343275),
+    (25.307147, 81.685831),
+    (25.479211, 81.835132),
+    (25.948880, 81.727558),
+    (26.095082, 81.900554),
+    (26.099279, 82.066282),
+    (25.828751, 82.056863),
 ]
 
 print("============================================")
@@ -23,6 +27,8 @@ with rasterio.open(DEM_PATH) as dem:
     print("DEM CRS:", dem.crs)
     print()
 
+    dem_array = dem.read(1)
+
     for i, (lat, lon) in enumerate(gcp_points, start=1):
 
         row, col = dem.index(lon, lat)
@@ -31,7 +37,8 @@ with rasterio.open(DEM_PATH) as dem:
             0 <= row < dem.height
             and 0 <= col < dem.width
         ):
-            elevation = float(dem.read(1)[row, col])
+
+            elevation = float(dem_array[row, col])
 
             print(
                 f"GCP {i}: "
@@ -41,6 +48,7 @@ with rasterio.open(DEM_PATH) as dem:
             )
 
         else:
+
             print(
                 f"GCP {i}: "
                 f"({lat:.6f}, {lon:.6f}) "
