@@ -1,67 +1,26 @@
 import csv
-import numpy as np
 
-# ============================================================
-# DEPTHWIZARD - GCP DATASET CREATION
-# ============================================================
+OUTPUT = r"results\gcp_dataset.csv"
 
-DEPTH_PATH = r"results\depth_maps\sentinel_rgb_2048_depth.npy"
-OUTPUT_PATH = r"results\gcp_dataset.csv"
-
-# Original Sentinel image pixel coordinates
-# Reference elevations obtained from DEM
-gcp_points = [
-    (4, 166, 10728, 125.44),
-    (5, 64, 5195, 107.77),
-    (7, 5855, 10900, 148.25),
-    (9, 150, 2670, 112.25),
-    (10, 166, 8219, 102.05),
-    (11, 3233, 10883, 116.71),
+gcp_data = [
+    ["GCP1", 153, 673, 153, 673, 1.079552, 109.75],
+    ["GCP2", 822, 752, 822, 752, 1.508826, 108.48],
+    ["GCP3", 1230, 797, 1230, 797, 1.739009, 101.18],
+    ["GCP4", 42, 1681, 42, 1681, 2.334853, 97.71],
+    ["GCP5", 245, 1866, 245, 1866, 2.540169, 111.08],
+    ["GCP6", 645, 1970, 645, 1970, 2.676443, 111.59],
+    ["GCP7", 1288, 1882, 1288, 1882, 2.781346, 97.14],
+    ["GCP8", 1566, 1525, 1566, 1525, 2.493215, 83.74],
+    ["GCP9", 1359, 556, 1359, 556, 1.587470, 101.13],
 ]
 
-# Original Sentinel image size
-ORIGINAL_SIZE = 10980
-
-# Depth map size
-DEPTH_SIZE = 2048
-
-depth = np.load(DEPTH_PATH)
-
-scale = DEPTH_SIZE / ORIGINAL_SIZE
-
-rows = []
-
 print("============================================")
-print("GCP DATASET CREATION")
+print("GCP DATASET CREATION - 9 VALID GCPs")
 print("============================================")
 
-for gcp_id, original_x, original_y, elevation in gcp_points:
+with open(OUTPUT, "w", newline="") as f:
 
-    x = round(original_x * scale)
-    y = round(original_y * scale)
-
-    relative_depth = float(depth[y, x])
-
-    rows.append([
-        f"GCP{gcp_id}",
-        original_x,
-        original_y,
-        x,
-        y,
-        relative_depth,
-        elevation
-    ])
-
-    print(
-        f"GCP{gcp_id}: "
-        f"Depth Pixel=({x},{y}) | "
-        f"Depth={relative_depth:.6f} | "
-        f"Elevation={elevation:.2f}m"
-    )
-
-with open(OUTPUT_PATH, "w", newline="") as file:
-
-    writer = csv.writer(file)
+    writer = csv.writer(f)
 
     writer.writerow([
         "id",
@@ -73,11 +32,21 @@ with open(OUTPUT_PATH, "w", newline="") as file:
         "reference_elevation"
     ])
 
-    writer.writerows(rows)
+    for row in gcp_data:
+
+        writer.writerow(row)
+
+        print(
+            f"{row[0]}: "
+            f"Depth Pixel=({row[3]},{row[4]}) | "
+            f"Depth={row[5]:.6f} | "
+            f"Elevation={row[6]:.2f}m"
+        )
 
 print()
 print("============================================")
 print("DATASET CREATED SUCCESSFULLY")
 print("============================================")
-print("Output:", OUTPUT_PATH)
-print("Valid GCPs:", len(rows))
+print(f"Output: {OUTPUT}")
+print(f"Valid GCPs: {len(gcp_data)}")
+print("============================================")
