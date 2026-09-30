@@ -1,0 +1,18 @@
+{
+    "method": "linear",
+    "scale": 0.205471,
+    "offset": 106.224873,
+    "calibration_gcp_count": 6,
+    "validation_gcp_count": 3,
+    "training_mae_m": 4.799,
+    "training_rmse_m": 5.272,
+    "validation_mae_m": 12.692,
+    "validation_rmse_m": 14.737,
+    "validation_r2": -2.9256,
+    "status": "preliminary_validation",
+    "validation_status": "NOT_RELIABLE",
+    "model_selection": "linear",
+    "model_selection_reason": "Linear regression achieved the lowest independent validation MAE and RMSE among linear, polynomial, and robust methods.",
+    "warning": "Validation R2 is negative. Current GCP dataset does not demonstrate reliable independent metric-elevation accuracy.",
+    "recommendation": "Collect additional independent GCPs before claiming accurate metric elevation."
+}
